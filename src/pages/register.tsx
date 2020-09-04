@@ -16,7 +16,6 @@ function Register() {
         initialValues={{ username: "", password: "" }}
         onSubmit={async (values, { setErrors }) => {
           const response = await register(values);
-          console.log("response: ", response);
           if (response.data?.register.errors) {
             console.error("error!", response.data?.register.errors);
             setErrors(toErrorMap(response.data.register.errors));

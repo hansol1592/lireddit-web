@@ -16,7 +16,6 @@ function Login() {
         initialValues={{ username: "", password: "" }}
         onSubmit={async (values, { setErrors }) => {
           const response = await login({ options: values });
-          console.log("response: ", response);
           if (response.data?.login.errors) {
             console.error("error!", response.data?.login.errors);
             setErrors(toErrorMap(response.data.login.errors));
