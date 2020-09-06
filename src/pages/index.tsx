@@ -1,27 +1,28 @@
 import NavBar from "../components/NavBar";
 import { withUrqlClient } from "next-urql";
 import { createUrqlClient } from "../utils/createUrqlClient";
-import { usePostsQuery } from "../generated/graphql";
+import { usePostsQuery, PostsQuery } from "../generated/graphql";
 import { Layout } from "../components/Layout";
 import { Link, Stack, Box, Heading, Text, Flex, Button } from "@chakra-ui/core";
 import NextLink from "next/link";
 import { useState } from "react";
+import { withApollo } from "../utils/withApollo";
 
 const Index = () => {
-  const [variables, setvariables] = useState({
-    limit: 10,
-    cursor: null as string | null,
-  });
-  const [{ data, fetching }] = usePostsQuery({
-    variables,
+  const { data, error, loading, fetchMore, variables } = usePostsQuery({
+    variables: {
+      limit: 10,
+      cursor: null,
+    },
+    notifyOnNetworkStatusChange: true,
   });
 
-  if (!fetching && !data) {
+  if (!loading && !data) {
     return <div>you got query failed for some reason</div>;
   }
 
-  console.log("variables: ", variables);
   console.log("data: ", data?.posts.hasMore);
+  console.log(data?.posts.posts[data.posts.posts.length - 1].createdAt);
 
   return (
     <Layout>
@@ -32,7 +33,7 @@ const Index = () => {
         </NextLink>
       </Flex>
       <br />
-      {!data && fetching ? (
+      {!data && loading ? (
         <div>loading...</div>
       ) : (
         <Stack spacing={8}>
@@ -47,13 +48,36 @@ const Index = () => {
       {data && data.posts.hasMore ? (
         <Flex>
           <Button
-            onClick={() =>
-              setvariables({
-                limit: variables.limit,
-                cursor: data.posts.posts[data.posts.posts.length - 1].createdAt,
-              })
-            }
-            isLoading={fetching}
+            onClick={() => {
+              fetchMore({
+                variables: {
+                  limit: variables?.limit,
+                  cursor:
+                    data.posts.posts[data.posts.posts.length - 1].createdAt,
+                },
+                // updateQuery: (
+                //   previousValue,
+                //   { fetchMoreResult }
+                // ): PostsQuery => {
+                //   if (!fetchMoreResult) {
+                //     return previousValue as PostsQuery;
+                //   }
+
+                //   return {
+                //     __typename: "Query",
+                //     posts: {
+                //       __typename: "PaginatedPosts",
+                //       hasMore: (fetchMoreResult as PostsQuery).posts.hasMore,
+                //       posts: [
+                //         ...(previousValue as PostsQuery).posts.posts,
+                //         ...(fetchMoreResult as PostsQuery).posts.posts,
+                //       ],
+                //     },
+                //   };
+                // },
+              });
+            }}
+            isLoading={loading}
             m="auto"
             my={8}
           >
@@ -65,4 +89,4 @@ const Index = () => {
   );
 };
 
-export default withUrqlClient(createUrqlClient, { ssr: true })(Index);
+export default withApollo({ ssr: true })(Index);

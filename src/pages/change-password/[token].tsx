@@ -6,15 +6,20 @@ import login from "../login";
 import { toErrorMap } from "../../utils/toErrorMap";
 import { InputField } from "../../components/InputField";
 import { Box, Button, Link, Flex } from "@chakra-ui/core";
-import { useChangePasswordMutation } from "../../generated/graphql";
+import {
+  useChangePasswordMutation,
+  MeQuery,
+  MeDocument,
+} from "../../generated/graphql";
 import { useRouter } from "next/router";
 import { withUrqlClient } from "next-urql";
 import { createUrqlClient } from "../../utils/createUrqlClient";
 import NextLink from "next/link";
+import { withApollo } from "../../utils/withApollo";
 
 const ChangePassword: NextPage = () => {
   const router = useRouter();
-  const [, ChangePassword] = useChangePasswordMutation();
+  const [ChangePassword] = useChangePasswordMutation();
   const [tokenError, setTokenError] = useState("");
 
   return (
@@ -23,9 +28,22 @@ const ChangePassword: NextPage = () => {
         initialValues={{ newPassword: "" }}
         onSubmit={async (values, { setErrors }) => {
           const response = await ChangePassword({
-            token:
-              typeof router.query.token === "string" ? router.query.token : "",
-            newPassword: values.newPassword,
+            variables: {
+              token:
+                typeof router.query.token === "string"
+                  ? router.query.token
+                  : "",
+              newPassword: values.newPassword,
+            },
+            update: (cache, { data }) => {
+              cache.writeQuery<MeQuery>({
+                query: MeDocument,
+                data: {
+                  __typename: "Query",
+                  me: data?.changePassword.user,
+                },
+              });
+            },
           });
           if (response.data?.changePassword.errors) {
             const errorMap = toErrorMap(response.data.changePassword.errors);
@@ -71,4 +89,4 @@ const ChangePassword: NextPage = () => {
   );
 };
 
-export default withUrqlClient(createUrqlClient)(ChangePassword);
+export default withApollo({ ssr: false })(ChangePassword);
