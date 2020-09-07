@@ -14,6 +14,7 @@ function CreatePost() {
   const router = useRouter();
   useIsAuth();
   const [createPost] = useCreatePostMutation();
+
   return (
     <Layout variant="small">
       <Formik
