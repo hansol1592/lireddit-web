@@ -9,7 +9,7 @@ import { useState } from "react";
 import { withApollo } from "../utils/withApollo";
 
 const Index = () => {
-  const { data, error, loading, fetchMore, variables } = usePostsQuery({
+  const { data, error, loading, variables, refetch } = usePostsQuery({
     variables: {
       limit: 10,
       cursor: null,
@@ -22,7 +22,7 @@ const Index = () => {
   }
 
   console.log("data: ", data?.posts.hasMore);
-  console.log(data?.posts.posts[data.posts.posts.length - 1].createdAt);
+  // console.log(data?.posts.posts[data.posts.posts.length - 1].createdAt);
 
   return (
     <Layout>
@@ -49,32 +49,9 @@ const Index = () => {
         <Flex>
           <Button
             onClick={() => {
-              fetchMore({
-                variables: {
-                  limit: variables?.limit,
-                  cursor:
-                    data.posts.posts[data.posts.posts.length - 1].createdAt,
-                },
-                // updateQuery: (
-                //   previousValue,
-                //   { fetchMoreResult }
-                // ): PostsQuery => {
-                //   if (!fetchMoreResult) {
-                //     return previousValue as PostsQuery;
-                //   }
-
-                //   return {
-                //     __typename: "Query",
-                //     posts: {
-                //       __typename: "PaginatedPosts",
-                //       hasMore: (fetchMoreResult as PostsQuery).posts.hasMore,
-                //       posts: [
-                //         ...(previousValue as PostsQuery).posts.posts,
-                //         ...(fetchMoreResult as PostsQuery).posts.posts,
-                //       ],
-                //     },
-                //   };
-                // },
+              refetch({
+                limit: variables?.limit,
+                cursor: data.posts.posts[data.posts.posts.length - 1].createdAt,
               });
             }}
             isLoading={loading}
