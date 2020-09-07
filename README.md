@@ -297,3 +297,123 @@ export const withApollo = createWithApollo(createClient);
 
   - 편한것 같기도 한데 아직은 낯설긴 하다.
   - 그렇긴 해도 위에서 언급했듯 loading 이나 error 에 대해 formik 에 맡기고 data 만 가져와서 사용할 수 있다는 장점이 있다.
+
+- Cache 업데이트
+- mutation 등의 동작에 따라 cache 의 데이터를 업데이트
+- (예: 회원가입 또는 로그인 시 유저 상태 변경 ,포스트 생성 시 리스트에 반영)
+- 회원가입 - update
+
+```jsx
+import React from "react";
+import { Formik, Form } from "formik";
+import { useRegisterMutation, MeQuery, MeDocument } from "../generated/graphql";
+import { withApollo } from "../utils/withApollo";
+
+function Register() {
+  const router = useRouter();
+  const [register] = useRegisterMutation();
+
+  return (
+    <Wrapper variant="small">
+      <Formik
+        initialValues={{ username: "", email: "", password: "" }}
+        onSubmit={async (values, { setErrors }) => {
+          // Mutation 사용
+          const response = await register({
+            variables: { options: values },
+            update: (cache, { data }) => {
+              cache.writeQuery <
+                MeQuery >
+                {
+                  query: MeDocument,
+                  data: {
+                    __typename: "Query",
+                    me: data?.register.user,
+                  },
+                };
+            },
+          });
+        }}
+      ></Formik>
+    </Wrapper>
+  );
+}
+
+export default withApollo({ ssr: false })(Register);
+```
+
+- 페이지 네이션 - refetch
+
+```jsx
+import NavBar from "../components/NavBar";
+import { withUrqlClient } from "next-urql";
+import { usePostsQuery, PostsQuery } from "../generated/graphql";
+
+const Index = () => {
+  const { data, error, loading, variables, refetch } = usePostsQuery({
+    variables: {
+      limit: 10,
+      cursor: null,
+    },
+    notifyOnNetworkStatusChange: true,
+  });
+
+  if (!loading && !data) {
+    return <div>you got query failed for some reason</div>;
+  }
+
+  return (
+          <Button
+            onClick={() => {
+              refetch({
+                limit: variables?.limit,
+                cursor: data.posts.posts[data.posts.posts.length - 1].createdAt,
+              });
+            }}
+            isLoading={loading}
+            m="auto"
+            my={8}
+          >
+            load more
+          </Button>
+};
+
+export default withApollo({ ssr: true })(Index);
+```
+
+- 포스트 생성 - update with fieldName
+  - 여기서 Mutation 함수의 update 안에 설정한 fieldName 을 통해 ApolloClient 에 설정한 typePolicies 의 fields 를 읽는 듯 하다.
+
+```jsx
+import React from "react";
+import { useCreatePostMutation } from "../generated/graphql";
+import { useIsAuth } from "../utils/useIsAuth";
+import { withApollo } from "../utils/withApollo";
+
+function CreatePost() {
+  const router = useRouter();
+  useIsAuth();
+  const [createPost] = useCreatePostMutation();
+
+  return (
+    <Layout variant="small">
+      <Formik
+        initialValues={{ title: "", text: "" }}
+        onSubmit={async (values, { setErrors }) => {
+          const { errors } = await createPost({
+            variables: { input: values },
+            update: (cache) => {
+              cache.evict({ fieldName: "posts:{}" });
+            },
+          });
+          if (!errors) {
+            router.push("/");
+          }
+        }}
+      ></Formik>
+    </Layout>
+  );
+}
+
+export default withApollo({ ssr: false })(CreatePost);
+```
