@@ -1,11 +1,7 @@
-import NavBar from "../components/NavBar";
-import { withUrqlClient } from "next-urql";
-import { createUrqlClient } from "../utils/createUrqlClient";
-import { usePostsQuery, PostsQuery } from "../generated/graphql";
-import { Layout } from "../components/Layout";
-import { Link, Stack, Box, Heading, Text, Flex, Button } from "@chakra-ui/core";
+import { Box, Button, Flex, Heading, Link, Stack, Text } from "@chakra-ui/core";
 import NextLink from "next/link";
-import { useState } from "react";
+import { Layout } from "../components/Layout";
+import { usePostsQuery } from "../generated/graphql";
 import { withApollo } from "../utils/withApollo";
 
 const Index = () => {
@@ -21,15 +17,15 @@ const Index = () => {
     return <div>you got query failed for some reason</div>;
   }
 
-  console.log("data: ", data?.posts.hasMore);
-  // console.log(data?.posts.posts[data.posts.posts.length - 1].createdAt);
-
   return (
     <Layout>
       <Flex alignItems="center">
         <Heading>LiReddit</Heading>
         <NextLink href="/create-post">
           <Link ml="auto">create post</Link>
+        </NextLink>
+        <NextLink href="/members">
+          <Link ml="auto">members</Link>
         </NextLink>
       </Flex>
       <br />

@@ -16,6 +16,15 @@ const createClient = (ctx: NextPageContext) =>
       typePolicies: {
         Query: {
           fields: {
+            userlist: {
+              keyArgs: [],
+              merge(existing: any, incoming: any): any {
+                console.log("existing: ", existing);
+                console.log("incoming: ", incoming);
+
+                return incoming;
+              },
+            },
             posts: {
               keyArgs: [],
               merge(

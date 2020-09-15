@@ -16,6 +16,7 @@ export type Query = {
   hello: Scalars['String'];
   posts: PaginatedPosts;
   post?: Maybe<Post>;
+  userlist?: Maybe<Array<User>>;
   me?: Maybe<User>;
 };
 
@@ -40,6 +41,7 @@ export type Post = {
   __typename?: 'Post';
   id: Scalars['Float'];
   creatorId: Scalars['Float'];
+  creator: User;
   title: Scalars['String'];
   text: Scalars['String'];
   points: Scalars['Float'];
@@ -250,6 +252,17 @@ export type PostsQuery = (
       & Pick<Post, 'id' | 'createdAt' | 'updatedAt' | 'title' | 'text' | 'textSnippet' | 'points'>
     )> }
   ) }
+);
+
+export type UserListQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UserListQuery = (
+  { __typename?: 'Query' }
+  & { userlist?: Maybe<Array<(
+    { __typename?: 'User' }
+    & Pick<User, 'username' | 'email'>
+  )>> }
 );
 
 export const RegularErrorFragmentDoc = gql`
@@ -545,3 +558,36 @@ export function usePostsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<Post
 export type PostsQueryHookResult = ReturnType<typeof usePostsQuery>;
 export type PostsLazyQueryHookResult = ReturnType<typeof usePostsLazyQuery>;
 export type PostsQueryResult = Apollo.QueryResult<PostsQuery, PostsQueryVariables>;
+export const UserListDocument = gql`
+    query UserList {
+  userlist {
+    username
+    email
+  }
+}
+    `;
+
+/**
+ * __useUserListQuery__
+ *
+ * To run a query within a React component, call `useUserListQuery` and pass it any options that fit your needs.
+ * When your component renders, `useUserListQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useUserListQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useUserListQuery(baseOptions?: Apollo.QueryHookOptions<UserListQuery, UserListQueryVariables>) {
+        return Apollo.useQuery<UserListQuery, UserListQueryVariables>(UserListDocument, baseOptions);
+      }
+export function useUserListLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<UserListQuery, UserListQueryVariables>) {
+          return Apollo.useLazyQuery<UserListQuery, UserListQueryVariables>(UserListDocument, baseOptions);
+        }
+export type UserListQueryHookResult = ReturnType<typeof useUserListQuery>;
+export type UserListLazyQueryHookResult = ReturnType<typeof useUserListLazyQuery>;
+export type UserListQueryResult = Apollo.QueryResult<UserListQuery, UserListQueryVariables>;
