@@ -417,3 +417,112 @@ function CreatePost() {
 
 export default withApollo({ ssr: false })(CreatePost);
 ```
+
+- Local State
+
+  - client 에서 사용할 수 있는 cache 공간을 제공한다.
+  - server 에서 가져오는 query 에 함께 넣어서 사용할 수도 있고, local 에서만 사용할 수도 있다.
+  - server 에서 지정한 쿼리와 마찬가지로 InMemoryCache 에 값을 설정해 값의 변화를 바로 바로 반영할 수 있다.
+  - server 에서 정의한 쿼리에 추가하는 경우
+
+  ```jsx
+  const GET_PRODUCT_DETAILS = gql`
+    query ProductDetails($productId: ID!) {
+      product(id: $productId) {
+        name
+        price
+        isInCart @client
+        purchaseStatus @client {
+          isInCart
+          isOnWishlist
+        }
+      }
+    }
+  `;
+  ```
+
+  - local 에서만 사용하는 경우
+
+  ```jsx
+  export const GET_CART_ITEMS = gql`
+    query GetCartItems {
+      cartItems @client
+    }
+  `;
+
+  export const cartItemsVar = makeVar([]);
+  ```
+
+  makeVar 는 local 에서 사용가능한 변수로의 기능을 제공한다.
+
+  - InMemoryCache 에 반영
+
+  ```jsx
+  export const cache = new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          cartItems: {
+            read() {
+              return cartItemsVar();
+            },
+          },
+        },
+      },
+    },
+  });
+  ```
+
+  이렇게 등록을 하면 cartItemsVar 의 내용이 바뀔때마다 값이 반영된다.
+
+  makeVar 로 지정한 값의 변경은 아래와 같이 변경가능하다.
+
+  ```jsx
+  import { cartItemsVar } from "./cache";
+  // ... other imports
+
+  export function AddToCartButton({ productId }) {
+    const cartItems = cartItemsVar();
+    return (
+      <div class="add-to-cart-button">
+        <Button onClick={() => cartItemsVar([...cartItems, productId])}>
+          Add to Cart
+        </Button>
+      </div>
+    );
+  }
+  ```
+
+  이렇게 값을 변경하고 InMemoryCache 에 read() 함수와 연결했기 때문에 cartItems 필드를 갖고 있는 쿼리를 호출하면 반영된 data 를 확인할 수 있다.
+
+  ```jsx
+  export const GET_CART_ITEMS = gql`
+    query GetCartItems {
+      cartItems @client
+    }
+  `;
+
+  export function Cart() {
+    const { data, loading, error } = useQuery(GET_CART_ITEMS);
+
+    if (loading) return <Loading />;
+    if (error) return <p>ERROR: {error.message}</p>;
+
+    return (
+      <div class="cart">
+        <Header>My Cart</Header>
+        {data && data.cartItems.length === 0 ? (
+          <p>No items in your cart</p>
+        ) : (
+          <Fragment>
+            {data &&
+              data.cartItems.map((productId) => <CartItem key={productId} />)}
+          </Fragment>
+        )}
+      </div>
+    );
+  }
+  ```
+
+  - cache 영역을 제공하기 때문에 어떻게 보면 client 에서 글로벌 state 를 이렇게 관리해도 될 것 같다.
+  - makeVar 를 통해 생성한 변수를 반응변수라고 하는데, 반응 변수가 변하면 해당 필드를 갖고있는 활성화된 쿼리를 새로고침한다고 나와있는데 이게 해당 쿼리 전체를 다시 호출해주는 것인지는 아직 모르겠다. 이런식으로 반응 변수가 바뀌었을 때 쿼리를 다시 호출할 수 있으면 해당 반응 변수를 트리거로 해서 쿼리의 데이터 전체를 다시 refetch 하는 용도로 쓸 수도 있지 않을까 싶다. 효율이 좋지는 않지만 cache 업데이트가 아직 까다롭기 때문에도 그렇고 활용방법이 있을 것 같다. 확인해볼만 하다.
